@@ -6,15 +6,17 @@ package tarsnap
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os/exec"
 	"sort"
 	"strings"
+	"time"
 )
 
 var std *Config
 
 // Archives lists known archive names in the default config.
-func Archives() ([]string, error) { return std.Archives() }
+func Archives() ([]Archive, error) { return std.Archives() }
 
 // Create creates a new archive in the default config.
 func Create(name string, entries ...string) error { return std.Create(name, entries...) }
@@ -26,19 +28,37 @@ func Delete(archives ...string) error { return std.Delete(archives...) }
 // is ready for use and provides default settings.
 type Config struct {
 	Tool    string
-	KeyFile string
+	Keyfile string
 }
 
-// Archives returns a list of the known archive names.  The resulting list is
-// ordered lexicographically.
-func (c *Config) Archives() ([]string, error) {
-	out, err := c.runOutput([]string{"--list-archives"})
+// Archives returns a list of the known archive names.  The resulting slice is
+// ordered nondecreasing by creation time and by name.
+func (c *Config) Archives() ([]Archive, error) {
+	raw, err := c.runOutput([]string{"--list-archives", "-v"})
 	if err != nil {
 		return nil, err
 	}
-	archives := strings.Split(strings.TrimSpace(string(out)), "\n")
-	sort.Strings(archives)
-	return archives, nil
+	cooked := strings.TrimSpace(string(raw))
+	var archs []Archive
+	for _, line := range strings.Split(cooked, "\n") {
+		parts := strings.SplitN(line, "\t", 2)
+		if len(parts) != 2 {
+			log.Printf("WARNING: Invalid archive spec %q (skipped)", line)
+			continue
+		}
+		when, err := time.Parse("2006-01-02 15:04:05", parts[1])
+		if err != nil {
+			log.Printf("WARNING: Invalid timestamp %q (skipped): %v", parts[1], err)
+		}
+		archs = append(archs, Archive{
+			Name:    parts[0],
+			Created: when,
+		})
+	}
+	sort.Slice(archs, func(i, j int) bool {
+		return archiveLess(archs[i], archs[j])
+	})
+	return archs, nil
 }
 
 // Create creates an archive with the specified name and entries.
@@ -47,7 +67,7 @@ func (c *Config) Create(name string, entries ...string) error {
 	return c.run(append([]string{"-c", "-f", name}, entries...))
 }
 
-// Delete deletes the specified entries.
+// Delete deletes the specified archives.
 func (c *Config) Delete(archives ...string) error {
 	args := []string{"-d"}
 	for _, a := range archives {
@@ -63,8 +83,8 @@ func (c *Config) base(rest ...string) (string, []string) {
 		if c.Tool != "" {
 			cmd = c.Tool
 		}
-		if c.KeyFile != "" {
-			base = append(base, "--keyfile", c.KeyFile)
+		if c.Keyfile != "" {
+			base = append(base, "--keyfile", c.Keyfile)
 		}
 	}
 	return cmd, append(base, rest...)
@@ -85,4 +105,17 @@ func (c *Config) runOutput(extra []string) ([]byte, error) {
 		return nil, fmt.Errorf("failed: %v", err)
 	}
 	return out, err
+}
+
+// An Archive represents the name and metadata known about an archive.
+type Archive struct {
+	Name    string    `json:"archive"`
+	Created time.Time `json:"created,omitempty"`
+}
+
+func archiveLess(a, b Archive) bool {
+	if a.Created.Equal(b.Created) {
+		return a.Name < b.Name
+	}
+	return a.Created.Before(b.Created)
 }
