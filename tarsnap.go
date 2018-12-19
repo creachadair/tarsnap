@@ -29,20 +29,6 @@ type Config struct {
 	KeyFile string
 }
 
-func (c *Config) args(rest ...string) (cmd string, args []string) {
-	args = append(args, "--no-print-stats")
-	cmd = "tarsnap"
-	if c != nil {
-		if c.Tool != "" {
-			cmd = c.Tool
-		}
-		if c.KeyFile != "" {
-			args = append(args, "--keyfile", c.KeyFile)
-		}
-	}
-	return cmd, append(args, rest...)
-}
-
 // Archives returns a list of the known archive names.  The resulting list is
 // ordered lexicographically.
 func (c *Config) Archives() ([]string, error) {
@@ -53,18 +39,6 @@ func (c *Config) Archives() ([]string, error) {
 	archives := strings.Split(strings.TrimSpace(string(out)), "\n")
 	sort.Strings(archives)
 	return archives, nil
-}
-
-func (c *Config) runOutput(args []string) ([]byte, error) {
-	cmd, base := c.args(args...)
-	out, err := exec.Command(cmd, base...).Output()
-	if err != nil {
-		if e, ok := err.(*exec.ExitError); ok {
-			err = errors.New(strings.SplitN(string(e.Stderr), "\n", 2)[0])
-		}
-		return nil, fmt.Errorf("failed: %v", err)
-	}
-	return out, err
 }
 
 // Create creates an archive with the specified name and entries.
@@ -82,7 +56,33 @@ func (c *Config) Delete(archives ...string) error {
 	return c.run(args)
 }
 
+func (c *Config) base(rest ...string) (string, []string) {
+	base := []string{"--quiet", "--no-print-stats"}
+	cmd := "tarsnap"
+	if c != nil {
+		if c.Tool != "" {
+			cmd = c.Tool
+		}
+		if c.KeyFile != "" {
+			base = append(base, "--keyfile", c.KeyFile)
+		}
+	}
+	return cmd, append(base, rest...)
+}
+
 func (c *Config) run(args []string) error {
 	_, err := c.runOutput(args)
 	return err
+}
+
+func (c *Config) runOutput(extra []string) ([]byte, error) {
+	cmd, args := c.base(extra...)
+	out, err := exec.Command(cmd, args...).Output()
+	if err != nil {
+		if e, ok := err.(*exec.ExitError); ok {
+			err = errors.New(strings.SplitN(string(e.Stderr), "\n", 2)[0])
+		}
+		return nil, fmt.Errorf("failed: %v", err)
+	}
+	return out, err
 }
