@@ -1,3 +1,5 @@
+// Copyright (C) 2018 Michael J. Fromberger. All Rights Reserved.
+
 // Package tarsnap is a library interface to the tarsnap command-line tool.
 package tarsnap
 
