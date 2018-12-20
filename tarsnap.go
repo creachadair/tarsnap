@@ -68,25 +68,25 @@ func (c *Config) Archives() ([]Archive, error) {
 // CreateOptions control the creation of archives.
 type CreateOptions struct {
 	// Include these file or directories in the archive.
-	Include []string
+	Include []string `json:"include"`
 
 	// Change to this directory before adding entries.
-	Dir string
+	Dir string `json:"dir,omitempty"`
 
 	// Modify names by these patterns, /old/new/[gps].
-	Modify []string
+	Modify []string `json:"modify,omitempty"`
 
 	// Exclude files or directories matching these patterns.
-	Exclude []string
+	Exclude []string `json:"exclude,omitempty"`
 
 	// Follow symlinks, storing the target rather than the link.
-	FollowSymlinks bool
+	FollowSymlinks bool `json:"followSymlinks"`
 
 	// Store access times.
-	StoreAccessTime bool
+	StoreAccessTime bool `json:"storeAccessTime"`
 
 	// Preserve original pathnames.
-	PreserveOriginalPaths bool
+	PreservePaths bool `json:"preservePaths"`
 }
 
 // Create creates an archive with the specified name and entries.
@@ -107,7 +107,7 @@ func (c *Config) Create(name string, opts CreateOptions) error {
 	if opts.StoreAccessTime {
 		args = append(args, "--store-atime")
 	}
-	if opts.PreserveOriginalPaths {
+	if opts.PreservePaths {
 		args = append(args, "-P")
 	}
 	for _, mod := range opts.Modify {
