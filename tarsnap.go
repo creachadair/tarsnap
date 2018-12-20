@@ -88,6 +88,9 @@ type CreateOptions struct {
 
 	// Preserve original pathnames.
 	PreservePaths bool `json:"preservePaths"`
+
+	// Simulate creating archives rather than creating them.
+	DryRun bool `json:"dryRun,omitempty"`
 }
 
 // Create creates an archive with the specified name and entries.
@@ -112,6 +115,9 @@ func (c *Config) Create(name string, opts CreateOptions) error {
 	}
 	if opts.PreservePaths {
 		args = append(args, "-P")
+	}
+	if opts.DryRun {
+		args = append(args, "--dry-run")
 	}
 	for _, mod := range opts.Modify {
 		args = append(args, "-s", mod)
