@@ -19,7 +19,7 @@ var std *Config
 func Archives() ([]Archive, error) { return std.Archives() }
 
 // Create creates a new archive in the default config.
-func Create(name string, entries ...string) error { return std.Create(name, entries...) }
+func Create(name string, opts CreateOptions) error { return std.Create(name, opts) }
 
 // Delete deletes an archive in the default config.
 func Delete(archives ...string) error { return std.Delete(archives...) }
@@ -29,6 +29,10 @@ func Delete(archives ...string) error { return std.Delete(archives...) }
 type Config struct {
 	Tool    string
 	Keyfile string
+
+	// If not nil, this function is called with each tarsnap command-line giving
+	// the full argument list.
+	CmdLog func(cmd string, args []string)
 }
 
 // Archives returns a list of the known archive names.  The resulting slice is
@@ -61,10 +65,58 @@ func (c *Config) Archives() ([]Archive, error) {
 	return archs, nil
 }
 
+// CreateOptions control the creation of archives.
+type CreateOptions struct {
+	// Include these file or directories in the archive.
+	Include []string
+
+	// Change to this directory before adding entries.
+	Dir string
+
+	// Modify names by these patterns, /old/new/[gps].
+	Modify []string
+
+	// Exclude files or directories matching these patterns.
+	Exclude []string
+
+	// Follow symlinks, storing the target rather than the link.
+	FollowSymlinks bool
+
+	// Store access times.
+	StoreAccessTime bool
+
+	// Preserve original pathnames.
+	PreserveOriginalPaths bool
+}
+
 // Create creates an archive with the specified name and entries.
 // It is equivalent in effect to "tarsnap -c -f name entries ...".
-func (c *Config) Create(name string, entries ...string) error {
-	return c.run(append([]string{"-c", "-f", name}, entries...))
+func (c *Config) Create(name string, opts CreateOptions) error {
+	if name == "" {
+		return errors.New("empty archive name")
+	} else if len(opts.Include) == 0 {
+		return errors.New("empty include list")
+	}
+	args := []string{"-c", "-f", name}
+	if opts.Dir != "" {
+		args = append(args, "-C", opts.Dir)
+	}
+	if opts.FollowSymlinks {
+		args = append(args, "-H")
+	}
+	if opts.StoreAccessTime {
+		args = append(args, "--store-atime")
+	}
+	if opts.PreserveOriginalPaths {
+		args = append(args, "-P")
+	}
+	for _, mod := range opts.Modify {
+		args = append(args, "-s", mod)
+	}
+	for _, exc := range opts.Exclude {
+		args = append(args, "--exclude", exc)
+	}
+	return c.run(append(args, opts.Include...))
 }
 
 // Delete deletes the specified archives.
@@ -97,6 +149,7 @@ func (c *Config) run(args []string) error {
 
 func (c *Config) runOutput(extra []string) ([]byte, error) {
 	cmd, args := c.base(extra...)
+	c.cmdLog(cmd, args)
 	out, err := exec.Command(cmd, args...).Output()
 	if err != nil {
 		if e, ok := err.(*exec.ExitError); ok {
@@ -105,6 +158,12 @@ func (c *Config) runOutput(extra []string) ([]byte, error) {
 		return nil, fmt.Errorf("failed: %v", err)
 	}
 	return out, err
+}
+
+func (c *Config) cmdLog(cmd string, args []string) {
+	if c != nil && c.CmdLog != nil {
+		c.CmdLog(cmd, args)
+	}
 }
 
 // An Archive represents the name and metadata known about an archive.
