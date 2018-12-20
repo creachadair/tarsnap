@@ -29,6 +29,7 @@ func Delete(archives ...string) error { return std.Delete(archives...) }
 type Config struct {
 	Tool    string
 	Keyfile string
+	Dir     string
 
 	// If not nil, this function is called with each tarsnap command-line giving
 	// the full argument list.
@@ -100,6 +101,8 @@ func (c *Config) Create(name string, opts CreateOptions) error {
 	args := []string{"-c", "-f", name}
 	if opts.Dir != "" {
 		args = append(args, "-C", opts.Dir)
+	} else if c != nil && c.Dir != "" {
+		args = append(args, "-C", c.Dir)
 	}
 	if opts.FollowSymlinks {
 		args = append(args, "-H")
