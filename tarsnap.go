@@ -77,7 +77,7 @@ type CreateOptions struct {
 	Include []string `json:"include"`
 
 	// Change to this directory before adding entries.
-	Dir string `json:"dir,omitempty" yaml:"workdir,omitempty"`
+	WorkDir string `json:"workDir,omitempty"`
 
 	// Modify names by these patterns, /old/new/[gps].
 	Modify []string `json:"modify,omitempty"`
@@ -107,8 +107,8 @@ func (c *Config) Create(name string, opts CreateOptions) error {
 		return errors.New("empty include list")
 	}
 	args := []string{"-c", "-f", name}
-	if opts.Dir != "" {
-		args = append(args, "-C", opts.Dir)
+	if opts.WorkDir != "" {
+		args = append(args, "-C", opts.WorkDir)
 	} else if c != nil && c.WorkDir != "" {
 		args = append(args, "-C", c.WorkDir)
 	}
