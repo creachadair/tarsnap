@@ -32,13 +32,13 @@ func Size(archives ...string) (*SizeInfo, error) { return std.Size(archives...) 
 // Config carries configuration settings to a tarsnap execution.  A nil *Config
 // is ready for use and provides default settings.
 type Config struct {
-	Tool    string
-	Keyfile string
-	Dir     string
+	Tool    string `json:"tool"`
+	Keyfile string `json:"keyFile"`
+	WorkDir string `json:"workDir"`
 
 	// If not nil, this function is called with each tarsnap command-line giving
 	// the full argument list.
-	CmdLog func(cmd string, args []string)
+	CmdLog func(cmd string, args []string) `json:"-" yaml:"-"`
 }
 
 // Archives returns a list of the known archive names.  The resulting slice is
@@ -109,8 +109,8 @@ func (c *Config) Create(name string, opts CreateOptions) error {
 	args := []string{"-c", "-f", name}
 	if opts.Dir != "" {
 		args = append(args, "-C", opts.Dir)
-	} else if c != nil && c.Dir != "" {
-		args = append(args, "-C", c.Dir)
+	} else if c != nil && c.WorkDir != "" {
+		args = append(args, "-C", c.WorkDir)
 	}
 	if opts.FollowSymlinks {
 		args = append(args, "-H")
