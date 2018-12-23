@@ -26,8 +26,8 @@ func Create(name string, opts CreateOptions) error { return std.Create(name, opt
 // Delete deletes an archive in the default config.
 func Delete(archives ...string) error { return std.Delete(archives...) }
 
-// Stats reports archive size statistics in the default config.
-func Stats(archives ...string) (*SizeInfo, error) { return std.Stats(archives...) }
+// Size reports archive size statistics in the default config.
+func Size(archives ...string) (*SizeInfo, error) { return std.Size(archives...) }
 
 // Config carries configuration settings to a tarsnap execution.  A nil *Config
 // is ready for use and provides default settings.
@@ -142,9 +142,9 @@ func (c *Config) Delete(archives ...string) error {
 	return c.run(args)
 }
 
-// Stats reports storage statistics for the specified archives.  If no archives
-// are specified only global stats are reported.
-func (c *Config) Stats(archives ...string) (*SizeInfo, error) {
+// Size reports storage sizes for the specified archives.  If no archives are
+// specified only global stats are reported.
+func (c *Config) Size(archives ...string) (*SizeInfo, error) {
 	args := []string{"--print-stats", "--no-humanize-numbers"}
 	for _, arch := range archives {
 		args = append(args, "-f", arch)
