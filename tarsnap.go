@@ -56,13 +56,16 @@ func (c *Config) Archives() ([]Archive, error) {
 			log.Printf("WARNING: Invalid archive spec %q (skipped)", line)
 			continue
 		}
-		when, err := time.Parse("2006-01-02 15:04:05", parts[1])
+
+		// N.B. Tarsnap prints times in the local timeszone by default, so we
+		// need to parse them in the same way.
+		when, err := time.ParseInLocation("2006-01-02 15:04:05", parts[1], time.Local)
 		if err != nil {
 			log.Printf("WARNING: Invalid timestamp %q (skipped): %v", parts[1], err)
 		}
 		archs = append(archs, Archive{
 			Name:    parts[0],
-			Created: when,
+			Created: when.In(time.UTC),
 		})
 	}
 	sort.Slice(archs, func(i, j int) bool {
@@ -266,7 +269,7 @@ func (c *Config) cmdLog(cmd string, args []string) {
 // An Archive represents the name and metadata known about an archive.
 type Archive struct {
 	Name    string    `json:"archive"`
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created,omitempty"` // in UTC
 }
 
 func archiveLess(a, b Archive) bool {
