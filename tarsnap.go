@@ -77,7 +77,7 @@ type CreateOptions struct {
 	Include []string `json:"include"`
 
 	// Change to this directory before adding entries.
-	Dir string `json:"dir,omitempty"`
+	Dir string `json:"dir,omitempty" yaml:"workdir,omitempty"`
 
 	// Modify names by these patterns, /old/new/[gps].
 	Modify []string `json:"modify,omitempty"`
@@ -86,16 +86,16 @@ type CreateOptions struct {
 	Exclude []string `json:"exclude,omitempty"`
 
 	// Follow symlinks, storing the target rather than the link.
-	FollowSymlinks bool `json:"followSymlinks"`
+	FollowSymlinks bool `json:"followSymlinks" yaml:"follow-symlinks"`
 
 	// Store access times.
-	StoreAccessTime bool `json:"storeAccessTime"`
+	StoreAccessTime bool `json:"storeAccessTime" yaml:"store-access-time"`
 
 	// Preserve original pathnames.
-	PreservePaths bool `json:"preservePaths"`
+	PreservePaths bool `json:"preservePaths" yaml:"preserve-paths"`
 
 	// Simulate creating archives rather than creating them.
-	DryRun bool `json:"dryRun,omitempty"`
+	DryRun bool `json:"dryRun,omitempty" yaml:"dry-run"`
 }
 
 // Create creates an archive with the specified name and entries.
