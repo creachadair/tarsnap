@@ -63,8 +63,14 @@ func (c *Config) Archives() ([]Archive, error) {
 		if err != nil {
 			log.Printf("WARNING: Invalid timestamp %q (skipped): %v", parts[1], err)
 		}
+		i := strings.Index(parts[0], ".")
+		if i < 0 {
+			i = len(parts[0])
+		}
 		archs = append(archs, Archive{
 			Name:    parts[0],
+			Base:    parts[0][:i],
+			Tag:     parts[0][i:],
 			Created: when.In(time.UTC),
 		})
 	}
@@ -268,7 +274,9 @@ func (c *Config) cmdLog(cmd string, args []string) {
 
 // An Archive represents the name and metadata known about an archive.
 type Archive struct {
-	Name    string    `json:"archive"`
+	Name    string    `json:"archive"`           // base.tag
+	Base    string    `json:"base,omitempty"`    // base alone
+	Tag     string    `json:"tag,omitempty"`     // .tag alone
 	Created time.Time `json:"created,omitempty"` // in UTC
 }
 
