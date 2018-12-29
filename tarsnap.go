@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"regexp"
 	"sort"
@@ -22,6 +23,9 @@ func Archives() ([]Archive, error) { return std.Archives() }
 
 // Create creates a new archive in the default config.
 func Create(name string, opts CreateOptions) error { return std.Create(name, opts) }
+
+// Extract extracts an archive with the default config.
+func Extract(name string, opts ExtractOptions) error { return std.Extract(name, opts) }
 
 // Delete deletes an archive in the default config.
 func Delete(archives ...string) error { return std.Delete(archives...) }
@@ -107,8 +111,8 @@ type CreateOptions struct {
 	DryRun bool `json:"dryRun,omitempty" yaml:"dry-run"`
 }
 
-// Create creates an archive with the specified name and entries.
-// It is equivalent in effect to "tarsnap -c -f name entries ...".
+// Create creates an archive with the specified name and options.
+// It is equivalent in effect to "tarsnap -c -f name opts...".
 func (c *Config) Create(name string, opts CreateOptions) error {
 	if name == "" {
 		return errors.New("empty archive name")
@@ -138,6 +142,67 @@ func (c *Config) Create(name string, opts CreateOptions) error {
 	}
 	for _, exc := range opts.Exclude {
 		args = append(args, "--exclude", exc)
+	}
+	return c.run(append(args, opts.Include...))
+}
+
+// ExtractOptions control the extraction of archives.
+type ExtractOptions struct {
+	// Include files matching these globs in the output.  If this is empty, the
+	// whole archive is extracted except for any exclusions. If not, only the
+	// files or directories specified are extracted, modulo exclusions.
+	Include []string `json:"include"`
+
+	// Exclude files or directories matching these patterns.
+	Exclude []string `json:"exclude,omitempty"`
+
+	// Change to this directory before extracting entries.
+	WorkDir string `json:"workDir,omitempty"`
+
+	// Restore permissions, owner, flags, and ACL.
+	RestorePermissions bool `json:"restorePerms" yaml:"restore-perms"`
+
+	// Ignore owner and group settings from the archive.
+	IgnoreOwners bool `json:"ignoreOwners" yaml:"ignore-owners"`
+
+	// TODO: Consider -k, --chroot, -m, -P, -q
+}
+
+// Extract extracts from an archive with the specified name and options.
+// It is equivalent in effect to "tarsnap -x -f name opts...".
+func (c *Config) Extract(name string, opts ExtractOptions) error {
+	if name == "" {
+		return errors.New("empty archive name")
+	}
+
+	args := []string{"-x", "-f", name}
+	var dir string
+	if opts.WorkDir != "" {
+		args = append(args, "-C", opts.WorkDir)
+		dir = opts.WorkDir
+	} else if c != nil && c.WorkDir != "" {
+		args = append(args, "-C", c.WorkDir)
+		dir = c.WorkDir
+	}
+
+	// Make sure the output directory exists, since tarsnap will not.
+	if dir != "" {
+		if err := os.MkdirAll(dir, 0700); err != nil {
+			return fmt.Errorf("creating workdir: %v", err)
+		}
+	}
+
+	if opts.RestorePermissions {
+		args = append(args, "-p")
+		if opts.IgnoreOwners {
+			args = append(args, "-o")
+		}
+	}
+	for _, exc := range opts.Exclude {
+		args = append(args, "--exclude", exc)
+	}
+	if len(opts.Include) != 0 {
+		args = append(args, "--")
 	}
 	return c.run(append(args, opts.Include...))
 }
