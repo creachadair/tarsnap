@@ -143,6 +143,9 @@ func (c *Config) Create(name string, opts CreateOptions) error {
 	for _, exc := range opts.Exclude {
 		args = append(args, "--exclude", exc)
 	}
+	if len(opts.Include) != 0 {
+		args = append(args, "--")
+	}
 	return c.run(append(args, opts.Include...))
 }
 
