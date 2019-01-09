@@ -53,6 +53,10 @@ func (c *Config) Archives() ([]Archive, error) {
 		return nil, err
 	}
 	cooked := strings.TrimSpace(string(raw))
+	if cooked == "" {
+		return nil, nil // no archives exist
+	}
+
 	var archs []Archive
 	for _, line := range strings.Split(cooked, "\n") {
 		parts := strings.SplitN(line, "\t", 2)
