@@ -18,8 +18,8 @@ import (
 
 var std *Config
 
-// Archives lists known archive names in the default config.
-func Archives() ([]Archive, error) { return std.Archives() }
+// List lists known archive names in the default config.
+func List() (Archives, error) { return std.List() }
 
 // Create creates a new archive in the default config.
 func Create(name string, opts CreateOptions) error { return std.Create(name, opts) }
@@ -45,9 +45,9 @@ type Config struct {
 	CmdLog func(cmd string, args []string) `json:"-" yaml:"-"`
 }
 
-// Archives returns a list of the known archive names.  The resulting slice is
-// ordered nondecreasing by creation time and by name.
-func (c *Config) Archives() ([]Archive, error) {
+// List returns a list of the known archives.  The resulting slice is ordered
+// nondecreasing by creation time and by name.
+func (c *Config) List() (Archives, error) {
 	raw, err := c.runOutput([]string{"--list-archives", "-v"})
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (c *Config) Archives() ([]Archive, error) {
 		return nil, nil // no archives exist
 	}
 
-	var archs []Archive
+	var archs Archives
 	for _, line := range strings.Split(cooked, "\n") {
 		parts := strings.SplitN(line, "\t", 2)
 		if len(parts) != 2 {
@@ -82,9 +82,7 @@ func (c *Config) Archives() ([]Archive, error) {
 			Created: when.In(time.UTC),
 		})
 	}
-	sort.Slice(archs, func(i, j int) bool {
-		return archiveLess(archs[i], archs[j])
-	})
+	sort.Sort(archs)
 	return archs, nil
 }
 
@@ -352,9 +350,16 @@ type Archive struct {
 	Created time.Time `json:"created,omitempty"` // in UTC
 }
 
-func archiveLess(a, b Archive) bool {
-	if a.Created.Equal(b.Created) {
-		return a.Name < b.Name
+// Archives is a sortable slice of Archive values, ordered non-decreasing by
+// creation time with ties broken by name.
+type Archives []Archive
+
+func (a Archives) Len() int      { return len(a) }
+func (a Archives) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+func (a Archives) Less(i, j int) bool {
+	if a[i].Created.Equal(a[j].Created) {
+		return a[i].Name < a[j].Name
 	}
-	return a.Created.Before(b.Created)
+	return a[i].Created.Before(a[j].Created)
 }
