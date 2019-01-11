@@ -43,8 +43,9 @@ func TestRoundTrip(t *testing.T) {
 	defer os.RemoveAll(tmp) // best effort cleanup
 
 	if err := cfg.Extract("test-archive", ExtractOptions{
-		Include: []string{"tarsnap/tarsnap.go"},
-		WorkDir: tmp,
+		Include:  []string{"tarsnap/tarsnap.go"},
+		WorkDir:  tmp,
+		FastRead: true,
 	}); err != nil {
 		t.Fatalf("Extracting test-archive failed: %v", err)
 	}

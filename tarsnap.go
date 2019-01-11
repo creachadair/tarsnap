@@ -170,7 +170,10 @@ type ExtractOptions struct {
 	// Ignore owner and group settings from the archive.
 	IgnoreOwners bool `json:"ignoreOwners" yaml:"ignore-owners"`
 
-	// TODO: Consider -k, --chroot, -m, -P, -q
+	// Stop reading after the first match for each included path.
+	FastRead bool `json:"fastRead" yaml:"fast-read"`
+
+	// TODO: Consider -k, --chroot, -m, -P
 }
 
 // Extract extracts from an archive with the specified name and options.
@@ -202,6 +205,9 @@ func (c *Config) Extract(name string, opts ExtractOptions) error {
 		if opts.IgnoreOwners {
 			args = append(args, "-o")
 		}
+	}
+	if opts.FastRead {
+		args = append(args, "--fast-read")
 	}
 	for _, exc := range opts.Exclude {
 		args = append(args, "--exclude", exc)
