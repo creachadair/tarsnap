@@ -363,3 +363,13 @@ func (a Archives) Less(i, j int) bool {
 	}
 	return a[i].Created.Before(a[j].Created)
 }
+
+// Latest returns the most recently-created archive with the given base.
+func (a Archives) Latest(base string) (Archive, bool) {
+	for i := len(a) - 1; i >= 0; i-- {
+		if a[i].Base == base {
+			return a[i], true
+		}
+	}
+	return Archive{}, false
+}
