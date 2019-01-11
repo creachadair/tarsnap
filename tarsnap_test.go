@@ -67,3 +67,64 @@ func TestRoundTrip(t *testing.T) {
 		t.Errorf("Deleting test-archive failed: %v", err)
 	}
 }
+
+func TestBasicRE(t *testing.T) {
+	tests := []struct {
+		in, want string
+	}{
+		// Base cases
+		{"", ""},
+		{"abc", "abc"},
+
+		// Unquoted operators retain their meaning.
+		{`a.*`, `a.*`},
+		{`^cherry$`, `^cherry$`},
+		{`abc[0-9]*def`, `abc[0-9]*def`},
+
+		// Unsupported regexp operators are quoted.
+		{`smoke|eh?`, `smoke\|eh\?`},
+		{`this+that`, `this\+that`},
+
+		// Escaped operators have their escapes propagated.
+		{`\^a\.b\*c \\ \$`, `\^a\.b\*c \\ \$`},
+
+		// Unescaped parentheses remain intact.
+		{`(abc)`, `\(abc\)`},
+		{`(you|shall|not|pass)+?`, `\(you\|shall\|not\|pass\)\+\?`},
+
+		// Escaped parentheses become groups.
+		{`(a\(bc\)d)`, `\(a(bc)d\)`},
+	}
+
+	for _, test := range tests {
+		got := basicToRE(test.in)
+		if got != test.want {
+			t.Errorf("BRE %#q: got %#q, want %#q", test.in, got, test.want)
+		}
+	}
+}
+
+func TestRule(t *testing.T) {
+	tests := []struct {
+		pattern string
+		in, out string
+		ok      bool
+	}{
+		{`/^\.//`, "nothing", "nothing", false},
+		{`/^\.//`, ".dot", "dot", true},
+		{`/a\(b*c\).txt/\1.md/`, "abbbc.txt", "bbbc.md", true},
+	}
+	for _, test := range tests {
+		r, err := ParseRule(test.pattern)
+		if err != nil {
+			t.Errorf("ParseRule(%q): unexpected error: %v", test.pattern, err)
+			continue
+		}
+		t.Logf("Rule: %#q → %#q :: %#q", r.lhs, r.rhs, test.in)
+		got, ok := r.Apply(test.in)
+		if ok != test.ok || got != test.out {
+			t.Errorf("(%q).Apply(%q): got (%q, %v), want (%q, %v)",
+				test.pattern, test.in, got, ok, test.out, test.ok)
+		}
+	}
+}
