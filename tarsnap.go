@@ -370,10 +370,15 @@ func (a Archives) Less(i, j int) bool {
 	return a[i].Created.Before(a[j].Created)
 }
 
-// Latest returns the most recently-created archive with the given base.
-func (a Archives) Latest(base string) (Archive, bool) {
+// Latest returns the most recently-created archive with the given base.  It is
+// shorthand for LatestAsOf(base, time.Now()).
+func (a Archives) Latest(base string) (Archive, bool) { return a.LatestAsOf(base, time.Now()) }
+
+// LatestAsOf returns the most recently-created archive with the given base at
+// or before the specified time.
+func (a Archives) LatestAsOf(base string, when time.Time) (Archive, bool) {
 	for i := len(a) - 1; i >= 0; i-- {
-		if a[i].Base == base {
+		if a[i].Base == base && !a[i].Created.After(when) {
 			return a[i], true
 		}
 	}
