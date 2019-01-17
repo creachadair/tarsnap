@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kylelemons/godebug/diff"
 )
@@ -27,27 +28,44 @@ func TestRoundTrip(t *testing.T) {
 			log.Printf("+ [%s] %s", cmd, strings.Join(args, " "))
 		},
 	}
+	const testArchive = "test-archive"
 
-	if err := cfg.Create("test-archive", CreateOptions{
-		Include: []string{"tarsnap"},
-		Exclude: []string{".git", "*~"},
-		WorkDir: "..",
+	// Create a small archive containing some of the files in this repo.
+	// Skip the .git directory to test exclusions.
+	ts := time.Date(1996, 6, 9, 11, 37, 0, 0, time.Local)
+	if err := cfg.Create(testArchive, CreateOptions{
+		Include:      []string{"tarsnap"},
+		Exclude:      []string{".git", "*~"},
+		WorkDir:      "..",
+		CreationTime: ts,
 	}); err != nil {
-		t.Fatalf("Create test-archive failed: %v", err)
+		t.Fatalf("Create %s failed: %v", testArchive, err)
 	}
 
+	// Verify that the archive got created and has the correct timestamp.
+	lst, err := cfg.List()
+	if err != nil {
+		t.Fatalf("Listing archives failed: %v", err)
+	} else if arch, ok := lst.Latest(testArchive); !ok {
+		t.Errorf("Did not find %q in the archive list", testArchive)
+	} else if !arch.Created.Equal(ts) {
+		t.Errorf("Creation time: got %v, want %v", arch.Created, ts)
+	}
+
+	// Extract a file from the archive to make sure we can, and compare the
+	// contents to the original.
 	tmp, err := ioutil.TempDir("", "tarsnap-test")
 	if err != nil {
 		t.Fatalf("Creating temporary directory: %v", err)
 	}
 	defer os.RemoveAll(tmp) // best effort cleanup
 
-	if err := cfg.Extract("test-archive", ExtractOptions{
+	if err := cfg.Extract(testArchive, ExtractOptions{
 		Include:  []string{"tarsnap/tarsnap.go"},
 		WorkDir:  tmp,
 		FastRead: true,
 	}); err != nil {
-		t.Fatalf("Extracting test-archive failed: %v", err)
+		t.Fatalf("Extracting %s failed: %v", testArchive, err)
 	}
 
 	want, err := ioutil.ReadFile("tarsnap.go")
@@ -63,8 +81,9 @@ func TestRoundTrip(t *testing.T) {
 		t.Errorf("Extracted file does not match, diff is: %s", d)
 	}
 
-	if err := cfg.Delete("test-archive"); err != nil {
-		t.Errorf("Deleting test-archive failed: %v", err)
+	// Delete the test archive to verify that we can, and to clean up.
+	if err := cfg.Delete(testArchive); err != nil {
+		t.Errorf("Deleting %s failed: %v", testArchive, err)
 	}
 }
 

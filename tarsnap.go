@@ -109,6 +109,9 @@ type CreateOptions struct {
 	// Preserve original pathnames.
 	PreservePaths bool `json:"preservePaths" yaml:"preserve-paths"`
 
+	// If non-zero, set the creation time of the archive to this time.
+	CreationTime time.Time
+
 	// Simulate creating archives rather than creating them.
 	DryRun bool `json:"dryRun,omitempty" yaml:"dry-run"`
 }
@@ -135,6 +138,9 @@ func (c *Config) Create(name string, opts CreateOptions) error {
 	}
 	if opts.PreservePaths {
 		args = append(args, "-P")
+	}
+	if !opts.CreationTime.IsZero() {
+		args = append(args, "--creationtime", fmt.Sprint(opts.CreationTime.Unix()))
 	}
 	if opts.DryRun {
 		args = append(args, "--dry-run")
