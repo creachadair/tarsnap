@@ -16,23 +16,6 @@ import (
 	"time"
 )
 
-var std *Config
-
-// List lists known archive names in the default config.
-func List() (Archives, error) { return std.List() }
-
-// Create creates a new archive in the default config.
-func Create(name string, opts CreateOptions) error { return std.Create(name, opts) }
-
-// Extract extracts an archive with the default config.
-func Extract(name string, opts ExtractOptions) error { return std.Extract(name, opts) }
-
-// Delete deletes an archive in the default config.
-func Delete(archives ...string) error { return std.Delete(archives...) }
-
-// Size reports archive size statistics in the default config.
-func Size(archives ...string) (*SizeInfo, error) { return std.Size(archives...) }
-
 // Config carries configuration settings to a tarsnap execution.  A nil *Config
 // is ready for use and provides default settings.
 type Config struct {
