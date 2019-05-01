@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kylelemons/godebug/diff"
+	"github.com/google/go-cmp/cmp"
 )
 
 var doManual = flag.Bool("manual", false, "Set true to enable manual tests")
@@ -79,7 +79,7 @@ func TestRoundTrip(t *testing.T) {
 		t.Fatalf("Reading extracted source: %v", err)
 	}
 
-	if d := diff.Diff(string(want), string(got)); d != "" {
+	if d := cmp.Diff(string(want), string(got)); d != "" {
 		t.Errorf("Extracted file does not match, diff is: %s", d)
 	}
 
