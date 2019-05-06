@@ -71,7 +71,7 @@ func (c *Config) List() (Archives, error) {
 
 // CreateOptions control the creation of archives.
 type CreateOptions struct {
-	// Include these file or directories in the archive.
+	// Include these files or directories in the archive.
 	Include []string `json:"include"`
 
 	// Change to this directory before adding entries.
