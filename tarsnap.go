@@ -52,7 +52,7 @@ func (c *Config) List() (Archives, error) {
 		// need to parse them in the same way.
 		when, err := time.ParseInLocation("2006-01-02 15:04:05", parts[1], time.Local)
 		if err != nil {
-			log.Printf("WARNING: Invalid timestamp %q (skipped): %v", parts[1], err)
+			log.Printf("WARNING: Invalid timestamp %q (ignored): %v", parts[1], err)
 		}
 		i := strings.Index(parts[0], ".")
 		if i < 0 {
