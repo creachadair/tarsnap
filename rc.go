@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -85,4 +86,18 @@ func (c *Config) RC() (RC, error) {
 		rc["keyfile"] = c.Keyfile
 	}
 	return rc, nil
+}
+
+// CacheTag loads and returns the current cache sequence tag.
+// If no cache directory is found, it returns "", nil.
+func (c *Config) CacheTag() (string, error) {
+	rc, err := c.RC()
+	if err != nil {
+		return "", err
+	}
+	cdir, ok := rc.Path("cachedir")
+	if !ok {
+		return "", nil
+	}
+	return os.Readlink(filepath.Join(cdir, "cseq"))
 }

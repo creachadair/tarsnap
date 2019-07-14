@@ -165,4 +165,11 @@ func TestRC(t *testing.T) {
 	if v, ok := rc["keyfile"]; !ok || v != kf {
 		t.Errorf("RC(keyfile): got (%q, %v), want (%q, true)", v, ok, kf)
 	}
+
+	seq, err := c.CacheTag()
+	if err != nil {
+		t.Errorf("CacheTag failed: %v", err)
+	} else {
+		t.Logf("Cache tag is %q", seq)
+	}
 }
