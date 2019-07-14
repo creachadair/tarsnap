@@ -149,3 +149,20 @@ func TestRule(t *testing.T) {
 		}
 	}
 }
+
+func TestRC(t *testing.T) {
+	const kf = "oh hi there"
+	c := &Config{Keyfile: kf}
+
+	rc, err := c.RC()
+	if err != nil {
+		t.Fatalf("Loading default RC: %v", err)
+	}
+	for key, val := range rc {
+		exp, _ := rc.Path(key)
+		t.Logf("Key %q | raw %q | expanded %q", key, val, exp)
+	}
+	if v, ok := rc["keyfile"]; !ok || v != kf {
+		t.Errorf("RC(keyfile): got (%q, %v), want (%q, true)", v, ok, kf)
+	}
+}
