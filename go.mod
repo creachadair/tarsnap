@@ -1,3 +1,3 @@
 module github.com/creachadair/tarsnap
 
-require github.com/google/go-cmp v0.3.0
+require github.com/google/go-cmp v0.3.1
