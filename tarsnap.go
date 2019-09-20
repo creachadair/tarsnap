@@ -211,10 +211,10 @@ func (c *Config) Extract(name string, opts ExtractOptions) error {
 	return c.run(append(args, opts.Include...))
 }
 
-// Contents calls f with each entry stored in the specified archive.
+// Entries calls f with each entry stored in the specified archive.
 // If f reports an error, scanning stops and that error is returned to the
 // caller of contents.
-func (c *Config) Contents(name string, f func(*Entry) error) (err error) {
+func (c *Config) Entries(name string, f func(*Entry) error) (err error) {
 	if name == "" {
 		return errors.New("empty archive name")
 	}

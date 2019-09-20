@@ -55,21 +55,21 @@ func TestRoundTrip(t *testing.T) {
 	}
 
 	// Verify that listing a non-existing archive provokes an error.
-	if err := cfg.Contents("no-such-archive", func(e *Entry) error {
+	if err := cfg.Entries("no-such-archive", func(e *Entry) error {
 		t.Errorf("Unexpected entry: %v", e)
 		return nil
 	}); err != nil {
-		t.Logf("Contents correctly failed for a non-existing archive: %v", err)
+		t.Logf("Entries correctly failed for a non-existing archive: %v", err)
 	} else {
-		t.Error("Contents succeeded for non-existing archive")
+		t.Error("Entries succeeded for non-existing archive")
 	}
 
 	// Log the contents of the test archive.
-	if err := cfg.Contents(testArchive, func(e *Entry) error {
+	if err := cfg.Entries(testArchive, func(e *Entry) error {
 		t.Log(e)
 		return nil
 	}); err != nil {
-		t.Fatalf("Contents failed: %v", err)
+		t.Fatalf("Entries failed: %v", err)
 	}
 
 	// Extract a file from the archive to make sure we can, and compare the
