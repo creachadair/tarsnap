@@ -54,6 +54,24 @@ func TestRoundTrip(t *testing.T) {
 		t.Errorf("Creation time: got %v, want %v", arch.Created, ts)
 	}
 
+	// Verify that listing a non-existing archive provokes an error.
+	if err := cfg.Contents("no-such-archive", func(e *Entry) error {
+		t.Errorf("Unexpected entry: %v", e)
+		return nil
+	}); err != nil {
+		t.Logf("Contents correctly failed for a non-existing archive: %v", err)
+	} else {
+		t.Error("Contents succeeded for non-existing archive")
+	}
+
+	// Log the contents of the test archive.
+	if err := cfg.Contents(testArchive, func(e *Entry) error {
+		t.Log(e)
+		return nil
+	}); err != nil {
+		t.Fatalf("Contents failed: %v", err)
+	}
+
 	// Extract a file from the archive to make sure we can, and compare the
 	// contents to the original.
 	tmp, err := ioutil.TempDir("", "tarsnap-test")

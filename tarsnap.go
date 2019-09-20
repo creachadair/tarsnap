@@ -4,8 +4,12 @@
 package tarsnap
 
 import (
+	"bufio"
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -207,6 +211,144 @@ func (c *Config) Extract(name string, opts ExtractOptions) error {
 	return c.run(append(args, opts.Include...))
 }
 
+// Contents calls f with each entry stored in the specified archive.
+// If f reports an error, scanning stops and that error is returned to the
+// caller of contents.
+func (c *Config) Contents(name string, f func(*Entry) error) (err error) {
+	if name == "" {
+		return errors.New("empty archive name")
+	}
+
+	// The -v flag is needed to ensure the output contains stat.
+	// The --numeric-owner flag ensures owner/group are not converted to names.
+	// The --iso-dates flag ensures we get seconds precision on timestamps.
+	cmd, args := c.base("-v", "--iso-dates", "--numeric-owner", "-t", "-f", name)
+	c.cmdLog(cmd, args)
+
+	// Ensure the subprocess is terminated on return, since the caller may not
+	// fully consume the output.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	proc := exec.CommandContext(ctx, cmd, args...)
+	ebuf := bytes.NewBuffer(nil)
+	proc.Stderr = ebuf
+	out, err := proc.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if err := proc.Start(); err != nil {
+		return err
+	}
+	defer func() {
+		werr := proc.Wait()
+		if werr != nil && err == nil {
+			err = errors.New(strings.SplitN(ebuf.String(), "\n", 2)[0])
+		}
+	}()
+
+	s := bufio.NewScanner(out)
+	for s.Scan() {
+		e, err := parseEntry(s.Text())
+		if err != nil {
+			return err
+		} else if err := f(e); err != nil {
+			return err
+		}
+	}
+	if err := s.Err(); err != io.EOF {
+		return err
+	}
+	return nil
+}
+
+// An Entry describes a single file or directory entry stored in an archive.
+type Entry struct {
+	Mode         os.FileMode
+	Owner, Group int
+	Size         int64     // in bytes
+	ModTime      time.Time // in UTC
+	Name         string
+}
+
+func (e *Entry) String() string {
+	return fmt.Sprintf("%v uid=%d gid=%d size=%d %v %q",
+		e.Mode, e.Owner, e.Group, e.Size, e.ModTime, e.Name)
+}
+
+var spaces = regexp.MustCompile(" +")
+
+func parseEntry(s string) (*Entry, error) {
+	// 0           1 2      3       4     5          6        7 ...
+	// -rw-r--r--  0 501    20      26628 2019-08-26 18:30:46 Documents/.DS_Store
+	parts := spaces.Split(s, 8)
+	if len(parts) != 8 {
+		return nil, errors.New("invalid entry format")
+	}
+	mode, err := parseMode(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf("entry %q: invalid mode: %v", s, err)
+	}
+	ts := parts[5] + "T" + parts[6]
+	mtime, err := time.ParseInLocation("2006-01-02T15:04:05", ts, time.Local)
+	if err != nil {
+		return nil, fmt.Errorf("entry %q: invalid mtime: %v", s, err)
+	}
+
+	// Directory names are stored with a trailing "/"; remove this for the entry.
+	e := &Entry{Mode: mode, Name: strings.TrimSuffix(parts[7], "/")}
+	e.Owner, _ = strconv.Atoi(parts[2])
+	e.Group, _ = strconv.Atoi(parts[3])
+	e.Size, _ = strconv.ParseInt(parts[4], 10, 64)
+	e.ModTime = mtime.In(time.UTC)
+	return e, nil
+}
+
+// parseMode parses the file mode from a 10-character string of the form
+// trwxrwxrwx.
+func parseMode(s string) (os.FileMode, error) {
+	if len(s) != 10 {
+		return 0, errors.New("invalid mode string")
+	}
+	var mode os.FileMode
+	switch s[0] {
+	case '-':
+		// do nothing; this is the default mode
+	case 'd':
+		mode |= os.ModeDir
+	case 'L':
+		mode |= os.ModeSymlink
+	default:
+		return 0, fmt.Errorf("unknown mode type %q", s)
+	}
+	mode |= parseRWX(s[1:], 6, os.ModeSetuid) |
+		parseRWX(s[4:], 3, os.ModeSetgid) |
+		parseRWX(s[7:], 0, 0)
+	return mode, nil
+}
+
+func parseRWX(s string, shift, setBit os.FileMode) (rwx os.FileMode) {
+	const modeRead = 4
+	const modeWrite = 2
+	const modeExec = 1
+
+	if s[0] == 'r' {
+		rwx |= modeRead << shift
+	}
+	if s[1] == 'w' {
+		rwx |= modeWrite << shift
+	}
+	if s[2] == 'x' || s[2] == 's' {
+		rwx |= modeExec << shift
+	}
+	if s[2] == 's' || s[2] == 'S' {
+		rwx |= setBit
+	}
+	return
+}
+
 // Delete deletes the specified archives.
 func (c *Config) Delete(archives ...string) error {
 	args := []string{"-d"}
@@ -322,13 +464,12 @@ func (c *Config) runOutput(extra []string) ([]byte, error) {
 	cmd, args := c.base(extra...)
 	c.cmdLog(cmd, args)
 	out, err := exec.Command(cmd, args...).Output()
-	if err != nil {
-		if e, ok := err.(*exec.ExitError); ok {
-			err = errors.New(strings.SplitN(string(e.Stderr), "\n", 2)[0])
-		}
-		return nil, fmt.Errorf("failed: %v", err)
+	if err == nil {
+		return out, nil
+	} else if e, ok := err.(*exec.ExitError); ok {
+		return nil, errors.New(strings.SplitN(string(e.Stderr), "\n", 2)[0])
 	}
-	return out, err
+	return nil, fmt.Errorf("failed: %v", err)
 }
 
 func (c *Config) cmdLog(cmd string, args []string) {
