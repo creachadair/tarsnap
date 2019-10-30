@@ -76,6 +76,7 @@ func (c *Config) List() (Archives, error) {
 // CreateOptions control the creation of archives.
 type CreateOptions struct {
 	// Include these files or directories in the archive.
+	// N.B. The tarsnap tool does not expand globs in include paths.
 	Include []string `json:"include"`
 
 	// Change to this directory before adding entries.
@@ -84,16 +85,16 @@ type CreateOptions struct {
 	// Modify names by these patterns, /old/new/[gps].
 	Modify []string `json:"modify,omitempty"`
 
-	// Exclude files or directories matching these patterns.
+	// Exclude files or directories matching these glob patterns.
 	Exclude []string `json:"exclude,omitempty"`
 
-	// Follow symlinks, storing the target rather than the link.
+	// Follow symlinks (as tarsnap -H), storing the target rather than the link.
 	FollowSymlinks bool `json:"followSymlinks" yaml:"follow-symlinks"`
 
-	// Store access times.
+	// Store access times (as tarsnap --store-atime). Not advised.
 	StoreAccessTime bool `json:"storeAccessTime" yaml:"store-access-time"`
 
-	// Preserve original pathnames.
+	// Preserve original pathnames (as tarsnap -P).
 	PreservePaths bool `json:"preservePaths" yaml:"preserve-paths"`
 
 	// If non-zero, set the creation time of the archive to this time.
