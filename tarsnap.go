@@ -23,9 +23,10 @@ import (
 // Config carries configuration settings to a tarsnap execution.  A nil *Config
 // is ready for use and provides default settings.
 type Config struct {
-	Tool    string `json:"tool"`
-	Keyfile string `json:"keyFile"`
-	WorkDir string `json:"workDir"`
+	Tool     string `json:"tool"`
+	Keyfile  string `json:"keyFile"`
+	WorkDir  string `json:"workDir"`
+	CacheDir string `json:"cacheDir"`
 
 	// If not nil, this function is called with each tarsnap command-line giving
 	// the full argument list.
@@ -451,6 +452,9 @@ func (c *Config) base(rest ...string) (string, []string) {
 		}
 		if c.Keyfile != "" {
 			base = append(base, "--keyfile", c.Keyfile)
+		}
+		if c.CacheDir != "" {
+			base = append(base, "--cachedir", c.CacheDir)
 		}
 	}
 	return cmd, append(base, rest...)
