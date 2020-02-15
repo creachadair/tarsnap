@@ -39,6 +39,8 @@ type Config struct {
 	//   --key    # if value == true
 	//   --no-key # if value == false
 	//
+	// Flags with string values will have environment variables expanded.
+	//
 	// Note that the Keyfile and CacheDir fields take precedence over settings
 	// given in this map. By default, tarsnap is allowed to also load the system
 	// and user config files (tarsnap.conf and ~/.tarsnaprc). To prevent this,
@@ -486,7 +488,7 @@ func (c *Config) base(rest ...string) (string, []string) {
 				// If this turns out to matter to anybody, fix it.
 			}
 		case string:
-			base = append(base, "--"+key, v)
+			base = append(base, "--"+key, os.ExpandEnv(v))
 		case float64:
 			base = append(base, "--"+key, strconv.FormatFloat(v, 'g', -1, 64))
 		default: // i.e., arrays, objects, null
