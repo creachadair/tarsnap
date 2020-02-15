@@ -28,6 +28,23 @@ type Config struct {
 	WorkDir  string `json:"workDir"`
 	CacheDir string `json:"cacheDir"`
 
+	// Additional settings flags to pass to the tarsnap command-line tool.
+	// Each key-value pair becomes a flag, e.g.,
+	//
+	//   --key=value
+	//
+	// As a special case, if the value is Boolean (true or false), the flag is
+	// passed without an argument:
+	//
+	//   --key    # if value == true
+	//   --no-key # if value == false
+	//
+	// Note that the Keyfile and CacheDir fields take precedence over settings
+	// given in this map. By default, tarsnap is allowed to also load the system
+	// and user config files (tarsnap.conf and ~/.tarsnaprc). To prevent this,
+	// set no-default-config: true.
+	Settings map[string]interface{}
+
 	// If not nil, this function is called with each tarsnap command-line giving
 	// the full argument list.
 	CmdLog func(cmd string, args []string) `json:"-" yaml:"-"`
@@ -445,6 +462,38 @@ func maybeParseSizeInfo(data []byte, err error) (*SizeInfo, error) {
 
 func (c *Config) base(rest ...string) (string, []string) {
 	base := []string{"--quiet", "--no-print-stats"}
+
+	var keys []string
+	for key := range c.Settings {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys) // ensure a stable order of flags.
+
+	// Handle explicit flag settings, if provided.
+	for _, key := range keys {
+		// Skip flag values overridden by the explicit fields.
+		if (key == "keyfile" && c.Keyfile != "") || (key == "cachedir" && c.CacheDir != "") {
+			continue
+		}
+
+		switch v := c.Settings[key].(type) {
+		case bool:
+			if v {
+				base = append(base, "--"+key)
+			} else {
+				base = append(base, "--no-"+key)
+				// N.B. If some wag writes no-foo=false, this will give --no-no-foo.
+				// If this turns out to matter to anybody, fix it.
+			}
+		case string:
+			base = append(base, "--"+key, v)
+		case float64:
+			base = append(base, "--"+key, strconv.FormatFloat(v, 'g', -1, 64))
+		default: // i.e., arrays, objects, null
+			log.Printf("WARNING: Ignored invalid value for flag %q: %v", key, c.Settings[key])
+		}
+	}
+
 	cmd := "tarsnap"
 	if c != nil {
 		if c.Tool != "" {
