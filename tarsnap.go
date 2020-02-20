@@ -28,24 +28,8 @@ type Config struct {
 	WorkDir  string `json:"workDir"`
 	CacheDir string `json:"cacheDir"`
 
-	// Additional settings flags to pass to the tarsnap command-line tool.
-	// Each key-value pair becomes a flag, e.g.,
-	//
-	//   --key=value
-	//
-	// As a special case, if the value is Boolean (true or false), the flag is
-	// passed without an argument:
-	//
-	//   --key    # if value == true
-	//   --no-key # if value == false
-	//
-	// Flags with string values will have environment variables expanded.
-	//
-	// Note that the Keyfile and CacheDir fields take precedence over settings
-	// given in this map. By default, tarsnap is allowed to also load the system
-	// and user config files (tarsnap.conf and ~/.tarsnaprc). To prevent this,
-	// set no-default-config: true.
-	Settings map[string]interface{}
+	// Optional settings flags to pass to the tarsnap command-line tool.
+	Flags []Flag `json:"flags"`
 
 	// If not nil, this function is called with each tarsnap command-line giving
 	// the full argument list.
@@ -463,38 +447,7 @@ func maybeParseSizeInfo(data []byte, err error) (*SizeInfo, error) {
 }
 
 func (c *Config) base(rest ...string) (string, []string) {
-	base := []string{"--quiet", "--no-print-stats"}
-
-	var keys []string
-	for key := range c.Settings {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys) // ensure a stable order of flags.
-
-	// Handle explicit flag settings, if provided.
-	for _, key := range keys {
-		// Skip flag values overridden by the explicit fields.
-		if (key == "keyfile" && c.Keyfile != "") || (key == "cachedir" && c.CacheDir != "") {
-			continue
-		}
-
-		switch v := c.Settings[key].(type) {
-		case bool:
-			if v {
-				base = append(base, "--"+key)
-			} else {
-				base = append(base, "--no-"+key)
-				// N.B. If some wag writes no-foo=false, this will give --no-no-foo.
-				// If this turns out to matter to anybody, fix it.
-			}
-		case string:
-			base = append(base, "--"+key, os.ExpandEnv(v))
-		case float64:
-			base = append(base, "--"+key, strconv.FormatFloat(v, 'g', -1, 64))
-		default: // i.e., arrays, objects, null
-			log.Printf("WARNING: Ignored invalid value for flag %q: %v", key, c.Settings[key])
-		}
-	}
+	base := c.addFlags([]string{"--quiet", "--no-print-stats"}, rest)
 
 	cmd := "tarsnap"
 	if c != nil {
@@ -569,4 +522,59 @@ func (a Archives) LatestAsOf(base string, when time.Time) (Archive, bool) {
 		}
 	}
 	return Archive{}, false
+}
+
+// A Flag describes a command-line flag for a tarsnap execution.
+type Flag struct {
+	Match string // if non-empty, only add if this argument is present
+	Flag  string // the name of the flag, passed as --name
+
+	// If not nil, the value of a flag must be a string, float64, or bool.
+	// A string value will have environment variables ($VAR) expanded.
+	//
+	// If value is nil or true, the flag has no argument: --name
+	// If value is false, the flag is sent as: --no-name
+	// Otherwise the flag is sent as: --name value
+	Value interface{}
+}
+
+func flagAppliesTo(c *Config, f Flag, args []string) bool {
+	if f.Match == "" {
+		return true
+	}
+	if (f.Flag == "keyfile" && c.Keyfile != "") || (f.Flag == "cachedir" && c.CacheDir != "") {
+		return false
+	}
+	for _, arg := range args {
+		if arg == f.Match {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Config) addFlags(base, extra []string) []string {
+	for _, f := range c.Flags {
+		if !flagAppliesTo(c, f, extra) {
+			continue
+		}
+		key := "--" + f.Flag
+		switch v := f.Value.(type) {
+		case nil:
+			base = append(base, key)
+		case bool:
+			if v {
+				base = append(base, key)
+			} else {
+				base = append(base, "--no-"+f.Flag)
+			}
+		case string:
+			base = append(base, key, os.ExpandEnv(v))
+		case float64:
+			base = append(base, key, strconv.FormatFloat(v, 'g', -1, 64))
+		default: // e.g., arrays, objects, null
+			log.Printf("WARNING: Ignored invalid value for flag %q: %v", f.Flag, f.Value)
+		}
+	}
+	return base
 }

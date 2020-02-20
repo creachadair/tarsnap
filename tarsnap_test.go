@@ -26,9 +26,10 @@ func TestRoundTrip(t *testing.T) {
 	}
 
 	cfg := &Config{
-		Settings: map[string]interface{}{
-			"aggressive-networking": false,
-		},
+		Flags: []Flag{{
+			Match: "-c",
+			Flag:  "aggressive-networking",
+		}},
 		CmdLog: func(cmd string, args []string) {
 			log.Printf("+ [%s] %s", cmd, strings.Join(args, " "))
 		},
