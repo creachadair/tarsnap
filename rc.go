@@ -91,13 +91,31 @@ func (c *Config) RC() (RC, error) {
 // CacheTag loads and returns the current cache sequence tag.
 // If no cache directory is found, it returns "", nil.
 func (c *Config) CacheTag() (string, error) {
-	rc, err := c.RC()
-	if err != nil {
-		return "", err
+	cdir := c.CacheDir // an explicit value takes priority
+
+	// If not, the config sets an explicit --cachedir, use it.
+	if cdir == "" {
+		for _, flag := range c.Flags {
+			if flag.Flag != "cachedir" {
+				continue
+			} else if s, ok := flag.Value.(string); ok && s != "" {
+				cdir = s
+				break
+			}
+		}
 	}
-	cdir, ok := rc.Path("cachedir")
-	if !ok {
-		return "", nil
+
+	// If not, read the cache directory from the rc files.
+	if cdir == "" {
+		rc, err := c.RC()
+		if err != nil {
+			return "", err
+		}
+		var ok bool
+		cdir, ok = rc.Path("cachedir")
+		if !ok {
+			return "", nil
+		}
 	}
 	return os.Readlink(filepath.Join(cdir, "cseq"))
 }
