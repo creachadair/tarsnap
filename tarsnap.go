@@ -248,6 +248,7 @@ func (c *Config) Entries(name string, f func(*Entry) error) (err error) {
 		return err
 	}
 	defer func() {
+		cancel() // the deferred cancel above happens after this
 		werr := proc.Wait()
 		if werr != nil && err == nil {
 			err = errors.New(strings.SplitN(ebuf.String(), "\n", 2)[0])
