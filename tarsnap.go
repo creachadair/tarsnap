@@ -376,10 +376,14 @@ func (c *Config) Size(archives ...string) (*SizeInfo, error) {
 
 // Sizes represents storage size values.
 type Sizes struct {
-	InputBytes            int64 // total bytes of original input
-	CompressedBytes       int64 // size after input compression
-	UniqueBytes           int64 // size after deduplication
-	CompressedUniqueBytes int64 // size after deduplication and compression
+	// Total bytes of original input
+	InputBytes int64 `json:"input_bytes"`
+	// Size after input compression
+	CompressedBytes int64 `json:"compressed_bytes"`
+	// Size after deduplication
+	UniqueBytes int64 `json:"unique_bytes"`
+	// Size after deduplication and compression
+	CompressedUniqueBytes int64 `json:"compressed_unique_bytes"`
 }
 
 func (s *Sizes) String() string {
