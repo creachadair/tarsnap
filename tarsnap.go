@@ -494,7 +494,7 @@ func (c *Config) cmdLog(cmd string, args []string) {
 
 // An Archive represents the name and metadata known about an archive.
 type Archive struct {
-	Name    string    `json:"archive"`           // base.tag
+	Name    string    `json:"name"`              // base.tag
 	Base    string    `json:"base,omitempty"`    // base alone
 	Tag     string    `json:"tag,omitempty"`     // .tag alone
 	Created time.Time `json:"created,omitempty"` // in UTC
