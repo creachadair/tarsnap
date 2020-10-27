@@ -102,7 +102,7 @@ type CreateOptions struct {
 	PreservePaths bool `json:"preservePaths" yaml:"preserve-paths"`
 
 	// If non-zero, set the creation time of the archive to this time.
-	CreationTime time.Time
+	CreationTime time.Time `json:"creationTime,omitempty" yaml:"creation-time"`
 
 	// Simulate creating archives rather than creating them.
 	DryRun bool `json:"dryRun,omitempty" yaml:"dry-run"`
@@ -377,13 +377,13 @@ func (c *Config) Size(archives ...string) (*SizeInfo, error) {
 // Sizes represents storage size values.
 type Sizes struct {
 	// Total bytes of original input
-	InputBytes int64 `json:"input_bytes"`
+	InputBytes int64 `json:"inputBytes"`
 	// Size after input compression
-	CompressedBytes int64 `json:"compressed_bytes"`
+	CompressedBytes int64 `json:"compressedBytes"`
 	// Size after deduplication
-	UniqueBytes int64 `json:"unique_bytes"`
+	UniqueBytes int64 `json:"uniqueBytes"`
 	// Size after deduplication and compression
-	CompressedUniqueBytes int64 `json:"compressed_unique_bytes"`
+	CompressedUniqueBytes int64 `json:"compressedUniqueBytes"`
 }
 
 func (s *Sizes) String() string {
