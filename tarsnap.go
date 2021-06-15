@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -117,10 +118,12 @@ func (c *Config) Create(name string, opts CreateOptions) error {
 		return errors.New("empty include list")
 	}
 	args := []string{"-c", "-f", name}
-	if opts.WorkDir != "" {
+	wd := opts.WorkDir
+	if c != nil && c.WorkDir != "" && !filepath.IsAbs(wd) {
+		wd = filepath.Join(c.WorkDir, wd)
+	}
+	if wd != "" {
 		args = append(args, "-C", opts.WorkDir)
-	} else if c != nil && c.WorkDir != "" {
-		args = append(args, "-C", c.WorkDir)
 	}
 	if opts.FollowSymlinks {
 		args = append(args, "-H")
