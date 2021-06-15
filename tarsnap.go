@@ -123,7 +123,7 @@ func (c *Config) Create(name string, opts CreateOptions) error {
 		wd = filepath.Join(c.WorkDir, wd)
 	}
 	if wd != "" {
-		args = append(args, "-C", opts.WorkDir)
+		args = append(args, "-C", wd)
 	}
 	if opts.FollowSymlinks {
 		args = append(args, "-H")
