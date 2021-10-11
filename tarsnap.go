@@ -327,7 +327,7 @@ func parseMode(s string) (os.FileMode, error) {
 		// do nothing; this is the default mode
 	case 'd':
 		mode |= os.ModeDir
-	case 'L':
+	case 'L', 'l':
 		mode |= os.ModeSymlink
 	default:
 		return 0, fmt.Errorf("unknown mode type %q", s)
