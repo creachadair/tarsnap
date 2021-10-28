@@ -4,7 +4,6 @@ package tarsnap
 
 import (
 	"flag"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -78,7 +77,7 @@ func TestRoundTrip(t *testing.T) {
 
 	// Extract a file from the archive to make sure we can, and compare the
 	// contents to the original.
-	tmp, err := ioutil.TempDir("", "tarsnap-test")
+	tmp, err := os.MkdirTemp("", "tarsnap-test")
 	if err != nil {
 		t.Fatalf("Creating temporary directory: %v", err)
 	}
@@ -92,11 +91,11 @@ func TestRoundTrip(t *testing.T) {
 		t.Fatalf("Extracting %s failed: %v", testArchive, err)
 	}
 
-	want, err := ioutil.ReadFile("tarsnap.go")
+	want, err := os.ReadFile("tarsnap.go")
 	if err != nil {
 		t.Fatalf("Reading old source: %v", err)
 	}
-	got, err := ioutil.ReadFile(filepath.Join(tmp, "tarsnap/tarsnap.go"))
+	got, err := os.ReadFile(filepath.Join(tmp, "tarsnap/tarsnap.go"))
 	if err != nil {
 		t.Fatalf("Reading extracted source: %v", err)
 	}
