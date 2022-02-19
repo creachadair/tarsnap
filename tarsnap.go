@@ -174,6 +174,10 @@ type ExtractOptions struct {
 	// Stop reading after the first match for each included path.
 	FastRead bool `json:"fastRead" yaml:"fast-read"`
 
+	// Resume an incomplete previous extraction, skipping files that already
+	// match by size and timestamp in the destination.
+	Resume bool `json:"resume" yaml:"resume"`
+
 	// TODO: Consider -k, --chroot, -m, -P
 }
 
@@ -209,6 +213,9 @@ func (c *Config) Extract(name string, opts ExtractOptions) error {
 	}
 	if opts.FastRead {
 		args = append(args, "--fast-read")
+	}
+	if opts.Resume {
+		args = append(args, "--resume-extract")
 	}
 	for _, exc := range opts.Exclude {
 		args = append(args, "--exclude", exc)
