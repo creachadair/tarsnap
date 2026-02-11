@@ -172,6 +172,8 @@ func TestRule(t *testing.T) {
 }
 
 func TestRC(t *testing.T) {
+	t.Skip("TODO: Fix dependency on ambient config")
+
 	const kf = "oh hi there"
 	c := &Config{Keyfile: kf}
 
