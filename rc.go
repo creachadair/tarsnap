@@ -3,6 +3,7 @@ package tarsnap
 import (
 	"bufio"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,9 +14,7 @@ type RC map[string]string
 
 // Merge updates rc with the keys and values from other.
 func (rc RC) Merge(other RC) {
-	for key, val := range other {
-		rc[key] = val
-	}
+	maps.Copy(rc, other)
 }
 
 // Path expands the value of the specified config key as a path, and reports

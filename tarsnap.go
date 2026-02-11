@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -550,7 +551,7 @@ type Flag struct {
 	// If value is nil or true, the flag has no argument: --name
 	// If value is false, the flag is sent as: --no-name
 	// Otherwise the flag is sent as: --name value
-	Value interface{}
+	Value any
 }
 
 func flagAppliesTo(c *Config, f Flag, args []string) bool {
@@ -560,12 +561,7 @@ func flagAppliesTo(c *Config, f Flag, args []string) bool {
 	if (f.Flag == "keyfile" && c.Keyfile != "") || (f.Flag == "cachedir" && c.CacheDir != "") {
 		return false
 	}
-	for _, arg := range args {
-		if arg == f.Match {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(args, f.Match)
 }
 
 func (c *Config) addFlags(base, extra []string) []string {
